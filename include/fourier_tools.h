@@ -1,5 +1,7 @@
+#ifndef fourier_tools_h
+#define fourier_tools_h
+
 #include "opencv2/core/base.hpp"
-#include <cstdio>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -45,7 +47,6 @@ void shift_fourier_space(const cv::Mat& dft, cv::Mat& dst) {
     temp.copyTo(q2);
 }
 
-
 void generate_magnitude_spectrum(const cv::Mat& dft, cv::Mat& dst) {
 
     //Split and get the magnitude of the complex fourier output
@@ -61,45 +62,20 @@ void generate_magnitude_spectrum(const cv::Mat& dft, cv::Mat& dst) {
     cv::normalize(dst, dst, 0, 1, cv::NORM_MINMAX);
 }
 
-int main(int argc, char ** argv) {
-    if (argc < 2) {
-        fprintf(stderr, "Expected video file name as a command line argument\n");
-        return -1;
-    }
-    const char * vName = argv[1];
-
-    cv::VideoCapture cap(vName);
-    cv::Mat frame;
-
-    while(true) {
-        cap >> frame;
-        if(frame.empty()) break;
-
-        cv::Mat gray;
-        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-
-        cv::Mat dft, dft_shift, m_s;
-        transform_fourier_space(gray, dft);
-        shift_fourier_space(dft, dft_shift);
-
-        int cx = dft_shift.cols/2;
-        int cy = dft_shift.rows/2;
-        int radius = 100;
-        cv::circle(dft_shift, cv::Point(cx, cy), radius/2, cv::Scalar(0), -1, cv::LINE_AA);
-        cv::Mat idft_shift, idft;
-        shift_fourier_space(dft_shift, idft_shift);
-        cv::dft(idft_shift, idft, cv::DFT_INVERSE + cv::DFT_SCALE);
-        cv::Mat planes[2];
-        cv::split(idft, planes);
-        cv::magnitude(planes[0], planes[1], idft);
-        cv::normalize(idft, idft, 0, 1, cv::NORM_MINMAX);
-        //generate_magnitude_spectrum(dft_shift, m_s);
-
-        cv::imshow("rocket", gray);
-        cv::imshow("magnitude_spectrum", idft);
-        if(cv::waitKey(33) == 113) {
-            break;
+void generate_gaussian(cv::Mat& dst, int rows, int cols, int uX, int uY, float sigmaX, float sigmaY, float amplitude = 1) {
+    cv::Mat temp(rows, cols, CV_32FC1); //guaranteed continuous;
+    for (int j = 0; j < rows; j++) {
+        float * elementPtr = temp.ptr<float>(j);
+        for (int i = 0; i < cols; i++) {
+            float x = (float) (i - uX) * (i - uX) / (2.0f * sigmaX * sigmaX);
+            float y = (float) (j - uY) * (j - uY) / (2.0f * sigmaY * sigmaY);
+            elementPtr[i] = amplitude*exp(-x - y);//A
         }
     }
-    return 0;
+    normalize(temp, temp, 0.0f, 1.0f, cv::NORM_MINMAX);
+    dst = temp; //copies header only;
 }
+
+
+
+#endif

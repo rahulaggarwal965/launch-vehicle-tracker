@@ -1,4 +1,5 @@
-debug/main.o: src/main.cpp /usr/include/opencv4/opencv2/core.hpp \
+debug/main.o: src/main.cpp include/tracker.h \
+ /usr/include/opencv4/opencv2/core.hpp \
  /usr/include/opencv4/opencv2/core/cvdef.h \
  /usr/include/opencv4/opencv2/core/hal/interface.h \
  /usr/include/opencv4/opencv2/core/cv_cpu_dispatch.h \
@@ -24,11 +25,12 @@ debug/main.o: src/main.cpp /usr/include/opencv4/opencv2/core.hpp \
  /usr/include/opencv4/opencv2/core/utility.hpp \
  /usr/include/opencv4/opencv2/core/optim.hpp \
  /usr/include/opencv4/opencv2/core/ovx.hpp \
- /usr/include/opencv4/opencv2/core/cvdef.h include/fourier_tools.h \
- /usr/include/opencv4/opencv2/imgproc.hpp \
+ /usr/include/opencv4/opencv2/core/cvdef.h \
+ /usr/include/opencv4/opencv2/imgproc.hpp include/fourier_tools.h \
  /usr/include/opencv4/opencv2/highgui.hpp \
  /usr/include/opencv4/opencv2/imgcodecs.hpp \
  /usr/include/opencv4/opencv2/videoio.hpp
+include/tracker.h:
 /usr/include/opencv4/opencv2/core.hpp:
 /usr/include/opencv4/opencv2/core/cvdef.h:
 /usr/include/opencv4/opencv2/core/hal/interface.h:
@@ -56,8 +58,8 @@ debug/main.o: src/main.cpp /usr/include/opencv4/opencv2/core.hpp \
 /usr/include/opencv4/opencv2/core/optim.hpp:
 /usr/include/opencv4/opencv2/core/ovx.hpp:
 /usr/include/opencv4/opencv2/core/cvdef.h:
-include/fourier_tools.h:
 /usr/include/opencv4/opencv2/imgproc.hpp:
+include/fourier_tools.h:
 /usr/include/opencv4/opencv2/highgui.hpp:
 /usr/include/opencv4/opencv2/imgcodecs.hpp:
 /usr/include/opencv4/opencv2/videoio.hpp:

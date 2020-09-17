@@ -1,4 +1,4 @@
-release/main.o: src/main.cpp include/tracker.h \
+release/tracker.o: src/tracker.cpp include/tracker.h \
  /usr/include/opencv4/opencv2/core.hpp \
  /usr/include/opencv4/opencv2/core/cvdef.h \
  /usr/include/opencv4/opencv2/core/hal/interface.h \

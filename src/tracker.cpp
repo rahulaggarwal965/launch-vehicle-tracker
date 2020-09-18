@@ -1,3 +1,5 @@
+#include "opencv2/core.hpp"
+#include "opencv2/core/base.hpp"
 #include <tracker.h>
 
 Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, double epsilon) {
@@ -9,10 +11,11 @@ Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, dou
 void Tracker::initialize(const cv::Mat& frame, int x, int y) {
     prev_x = x; prev_y = y;
     cv::Mat tracking_window = frame(cv::Rect(x, y, tracking_window_size.width, tracking_window_size.height));
+    imhold(tracking_window, "Bounding box");
     cv::Mat preprocessed_tracking_window;
     preprocess_tracking_window(tracking_window, preprocessed_tracking_window);
     cv::Mat synth_target;
-    generate_gaussian(synth_target, tracking_window_size.height, tracking_window_size.width, x, y, 2, 2);
+    generate_gaussian(synth_target, tracking_window_size.height, tracking_window_size.width, tracking_window_size.width/2, tracking_window_size.height/2, 2, 2);
     transform_fourier_space(synth_target, synth_target);
 
     //TODO: perturbations
@@ -28,11 +31,22 @@ void Tracker::update(const cv::Mat &frame) {
     preprocess_tracking_window(tracking_window, preprocessed_tracking_window);
     cv::Mat filter;
     divide_spectrums(N, D, filter);
+
+    //cv::Mat temp;
+    //cv::Mat ones  = cv::Mat::ones(filter.rows, filter.cols, CV_32FC2);
+    //cv::mulSpectrums(ones, filter, temp, true);
+    //cv::dft(temp, temp, cv::DFT_INVERSE + cv::DFT_SCALE);
+
+    //cv::Mat channels[2];
+    //cv::split(temp, channels);
+    //imhold(channels[0], "response");
+
     cv::Mat peak;
     cv::mulSpectrums(filter, preprocessed_tracking_window, peak, 0);
     cv::dft(peak, peak, cv::DFT_INVERSE + cv::DFT_SCALE);
     cv::Mat channels[2];
-    imhold(peak, "response");
+    cv::split(peak, channels);
+    imhold(channels[0], "response");
 }
 
 void Tracker::preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat& dst) {

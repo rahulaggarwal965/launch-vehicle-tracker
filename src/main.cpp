@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could not get frame of video");
     }
 
-    tracker.initialize(frame, 641, 220);
+    tracker.initialize(frame, 610, 185);
     tracker.update(frame);
 
 }

@@ -15,8 +15,10 @@ public:
     Tracker(const cv::Size& tracking_window_size, double learning_rate = 0.125, double epsilon = 0.001);
     void initialize(const cv::Mat& frame, int x, int y);
     void update(const cv::Mat& frame);
+    void draw(cv::Mat& frame);
 
 private:
+    cv::Mat H, response;
     void generate_perturbations(cv::Mat tracking_window);
     void preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat& dst);
 };

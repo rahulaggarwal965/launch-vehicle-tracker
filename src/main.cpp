@@ -1,3 +1,4 @@
+#include "opencv2/imgproc.hpp"
 #include "tracker.h"
 
 int main(int argc, char **argv) {
@@ -18,5 +19,9 @@ int main(int argc, char **argv) {
 
     tracker.initialize(frame, 610, 185);
     tracker.update(frame);
+    cv::Mat gray;
+    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    tracker.draw(gray);
+    imhold(gray, "frame");
 
 }

@@ -28,9 +28,10 @@ void Tracker::update(const cv::Mat& frame) {
     cv::Mat preprocessed_tracking_window;
     preprocess_tracking_window(tracking_window, preprocessed_tracking_window);
     cv::Mat filter;
+    // NOTE: gives conjugate of filter
     divide_spectrums(N, D, filter);
 
-    //for drawing
+    // Getting conjugate of filter and storing it for DRAWING
     cv::Mat temp;
     cv::Mat ones  = cv::Mat::ones(filter.rows, filter.cols, CV_32FC2);
     cv::mulSpectrums(ones, filter, temp, true);
@@ -38,17 +39,28 @@ void Tracker::update(const cv::Mat& frame) {
     cv::normalize(temp, temp, 0, 1, cv::NORM_MINMAX);
     H = temp;
 
+    // Getting new peak
     cv::Mat peak;
     cv::mulSpectrums(filter, preprocessed_tracking_window, peak, 0);
+
+    // Adapting the filter based on given learning rate
+    cv::Mat N, D;
+    cv::mulSpectrums(peak, preprocessed_tracking_window, N, 0, true);
+    cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
+
+    this->N = this->learning_rate * N + (1 - this->learning_rate) * this->N;
+    this->D = this->learning_rate * (D + epsilon) + (1 - this->learning_rate) * this->D;
+
+    // Getting the gaussian peak out of fourier space
     cv::dft(peak, peak, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
 
+    // Finding strongest correlation point and storing x and y values
     cv::Point gaussian_peak;
-
     cv::minMaxLoc(peak, NULL, NULL, NULL, &gaussian_peak);
     this->prev_x += gaussian_peak.x - tracking_window_size.width / 2;
     this->prev_y += gaussian_peak.y - tracking_window_size.height / 2;
 
-    //For drawing
+    //Only for drawing the peak
     response = peak.clone();
 }
 
@@ -71,7 +83,7 @@ void Tracker::draw(cv::Mat& frame) {
 
 void Tracker::preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat& dst) {
     cv::cvtColor(tracking_window, dst, cv::COLOR_BGR2GRAY);
-    //TODO: experiment with this
+    //TODO: experiment with this (scale by 255 or no?)
     dst.convertTo(dst, CV_32FC1);
     cv::log(dst + 1, dst);
     cv::normalize(dst, dst, 0, 1, cv::NORM_MINMAX);

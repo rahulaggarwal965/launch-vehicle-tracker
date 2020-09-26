@@ -1,3 +1,4 @@
+#include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include "tracker.h"
 
@@ -17,11 +18,24 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could not get frame of video");
     }
 
-    tracker.initialize(frame, 610, 185);
-    tracker.update(frame);
-    cv::Mat gray;
-    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-    tracker.draw(gray);
-    imhold(gray, "frame");
+    tracker.initialize(frame, 640, 220);
 
+    while (true) {
+        cap >> frame;
+        if(frame.empty()) {
+            fprintf(stderr, "Could not get frame of video");
+        }
+
+        tracker.update(frame);
+        cv::Mat gray;
+        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+        tracker.draw(gray);
+
+        cv::imshow("tracker", gray);
+
+        if (cv::waitKey(33) == 113) {
+            break;
+        }
+    }
+    return 0;
 }

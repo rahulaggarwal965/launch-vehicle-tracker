@@ -1,4 +1,4 @@
-#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include <tracker.h>
 
 Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, double epsilon) {
@@ -8,19 +8,40 @@ Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, dou
 }
 
 void Tracker::initialize(const cv::Mat& frame, int x, int y) {
+
+    //Choose initial window.
     prev_x = x; prev_y = y;
     cv::Mat tracking_window = frame(cv::Rect(x - tracking_window_size.width / 2, y - tracking_window_size.height / 2, tracking_window_size.width, tracking_window_size.height));
-    cv::Mat preprocessed_tracking_window;
-    preprocess_tracking_window(tracking_window, preprocessed_tracking_window);
+
+    //Generate synthetic target
     cv::Mat synth_target;
     generate_gaussian(synth_target, tracking_window_size.height, tracking_window_size.width, tracking_window_size.width/2, tracking_window_size.height/2, 2, 2);
     transform_fourier_space(synth_target, synth_target);
 
-    //TODO: perturbations
+    // Get perturbations
+    cv::Mat perturbations[8];
+    generate_perturbations(tracking_window, perturbations);
+
+    //Initialize N and D with normal image.
+    cv::Mat preprocessed_tracking_window;
+    preprocess_tracking_window(tracking_window, preprocessed_tracking_window);
+
     cv::mulSpectrums(synth_target, preprocessed_tracking_window, N, 0, true);
     cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
     D += epsilon; //So we don't divide by 0 accidently.
 
+    //Update with perturbed image.
+    for (int i = 0; i < 8; i++) {
+        preprocess_tracking_window(perturbations[i], preprocessed_tracking_window);
+
+        cv::Mat N, D;
+        cv::mulSpectrums(synth_target, preprocessed_tracking_window, N, 0, true);
+        cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
+        D += epsilon; //So we don't divide by 0 accidently.
+
+        this->N = this->learning_rate * N + (1 - this->learning_rate) * this->N;
+        this->D = this->learning_rate * (D + epsilon) + (1 - this->learning_rate) * this->D;
+    }
 }
 
 void Tracker::update(const cv::Mat& frame) {
@@ -88,4 +109,20 @@ void Tracker::preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat
     cv::log(dst + 1, dst);
     cv::normalize(dst, dst, 0, 1, cv::NORM_MINMAX);
     transform_fourier_space(dst, dst);
+}
+
+void Tracker::generate_perturbations(const cv::Mat& tracking_window, cv::Mat perturbations[8]) {
+    cv::Point center(tracking_window.cols / 2, tracking_window.rows / 2);
+    perturbations[0] = cv::getRotationMatrix2D(center,  -2.8, 1);
+    perturbations[1] = cv::getRotationMatrix2D(center,  2.8, 1);
+    perturbations[2] = cv::getRotationMatrix2D(center, -1.2, 1);
+    perturbations[3] = cv::getRotationMatrix2D(center,  1.2, 1);
+    perturbations[4] = cv::getRotationMatrix2D(center,  0, 0.95);
+    perturbations[5] = cv::getRotationMatrix2D(center,  0, 0.97);
+    perturbations[6] = cv::getRotationMatrix2D(center,  0, 1.03);
+    perturbations[7] = cv::getRotationMatrix2D(center,  0, 1.05);
+
+    for (int i = 0; i < 8; i++) {
+        cv::warpAffine(tracking_window, perturbations[i], perturbations[i], cv::Size(0, 0));
+    }
 }

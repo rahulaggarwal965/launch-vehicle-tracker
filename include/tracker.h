@@ -19,7 +19,7 @@ public:
 
 private:
     cv::Mat H, response;
-    void generate_perturbations(cv::Mat tracking_window);
+    void generate_perturbations(const cv::Mat& tracking_window, cv::Mat* perturbations);
     void preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat& dst);
 };
 

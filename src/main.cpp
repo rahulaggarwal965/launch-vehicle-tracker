@@ -8,6 +8,8 @@ int main(int argc, char **argv) {
         return -1;
     }
     const char * vName = argv[1];
+    int x = (argc > 2) ? atoi(argv[2]) : 640;
+    int y = (argc > 3) ? atoi(argv[3]) : 220;
 
     cv::VideoCapture cap(vName);
     cv::Mat frame;
@@ -18,7 +20,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could not get frame of video");
     }
 
-    tracker.initialize(frame, 640, 220);
+    tracker.initialize(frame, x, y);
 
     while (true) {
         cap >> frame;
@@ -33,7 +35,7 @@ int main(int argc, char **argv) {
 
         cv::imshow("tracker", gray);
 
-        if (cv::waitKey(33) == 113) {
+        if (cv::waitKey(0) == 113) {
             break;
         }
     }

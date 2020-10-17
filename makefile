@@ -1,6 +1,6 @@
 # Compiler
 CC = g++
-CPPFLAGS := -Iinclude -MMD -MP
+CPPFLAGS := -Iinclude -MMD -MP -std=c++11
 CFLAGS := `pkg-config --cflags opencv4` -Wall
 
 # Linker

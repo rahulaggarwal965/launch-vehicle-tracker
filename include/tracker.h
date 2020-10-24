@@ -2,7 +2,6 @@
 #define tracker_h
 
 #include <opencv2/core.hpp>
-#include <opencv2/core/base.hpp>
 #include <opencv2/imgproc.hpp>
 #include "fourier_tools.h"
 
@@ -19,8 +18,9 @@ public:
 
 private:
     cv::Mat H, response;
-    void generate_perturbations(const cv::Mat& tracking_window, cv::Mat* perturbations);
-    void preprocess_tracking_window(const cv::Mat& tracking_window, cv::Mat& dst);
+    void transform_fourier_space(const cv::Mat& frame, cv::Mat& dft, bool preprocess = true);
+    void generate_perturbations(const cv::Mat& tracking_window, const cv::Mat& gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]);
+    void preprocess(const cv::Mat &frame, cv::Mat &dst);
 };
 
 #endif

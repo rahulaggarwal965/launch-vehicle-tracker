@@ -1,15 +1,11 @@
 #ifndef fourier_tools_h
 #define fourier_tools_h
 
-#include "opencv2/core/base.hpp"
-#include "opencv2/core/matx.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-void transform_fourier_space(const cv::Mat& gray, cv::Mat& dst);
-
-void shift_fourier_space(const cv::Mat& dft, cv::Mat& dst);
+void shift_quadrants(cv::Mat &dst);
 
 void generate_magnitude_spectrum(const cv::Mat& dft, cv::Mat& dst);
 

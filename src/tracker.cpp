@@ -140,7 +140,7 @@ void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, 
             if (max_val > best_peak) {
                 best_peak = max_val;
                 peak_dft = peak;
-                loc->x = lx + iagaussian_peak.x;
+                loc->x = lx + gaussian_peak.x;
                 loc->y = gaussian_peak.y;
             }
         }

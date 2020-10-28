@@ -13,7 +13,9 @@ int main(int argc, char **argv) {
 
     cv::VideoCapture cap(vName);
     cv::Mat frame;
-    Tracker tracker(cv::Size(64, 64));
+
+    //TODO: EPSILON has a HUGE difference on max_val
+    Tracker tracker(cv::Size(64, 64), 0.125, 0);
 
     cap >> frame;
     if(frame.empty()) {

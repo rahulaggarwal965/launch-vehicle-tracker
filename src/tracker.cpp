@@ -1,5 +1,9 @@
 #include "fourier_tools.h"
+#include "opencv2/core.hpp"
+#include "opencv2/core/base.hpp"
 #include <tracker.h>
+
+//TODO: (BREAKING) might change to double precision to avoid inverse dft issues
 
 Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, double epsilon) {
     this->tracking_window_size = tracking_window_size;
@@ -11,11 +15,17 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
 
     //Choose initial window.
     prev_x = x; prev_y = y;
-    cv::Mat tracking_window = frame(cv::Rect(x - tracking_window_size.width / 2, y - tracking_window_size.height / 2, tracking_window_size.width, tracking_window_size.height));
+    cv::Mat tracking_window = frame(cv::Rect(
+                x - tracking_window_size.width / 2,
+                y - tracking_window_size.height / 2,
+                tracking_window_size.width,
+                tracking_window_size.height
+                ));
 
     //Generate synthetic target
     cv::Mat synth_target, fourier_synth_target;
-    generate_gaussian(synth_target, tracking_window_size.height,
+    generate_gaussian(synth_target,
+            tracking_window_size.height,
             tracking_window_size.width,
             tracking_window_size.width / 2,
             tracking_window_size.height / 2, 2, 2);
@@ -29,53 +39,62 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
     //Initialize N and D with normal image.
     cv::Mat preprocessed_tracking_window;
     transform_fourier_space(tracking_window, preprocessed_tracking_window);
-    /* preprocess(tracking_window, preprocessed_tracking_window); */
 
     cv::mulSpectrums(fourier_synth_target, preprocessed_tracking_window, N, 0,
             true);
     cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
+    //TODO: better way of regularization
     D += epsilon; //So we don't divide by 0 accidently.
 
     //Update with perturbed image.
     for (int i = 0; i < 8; i++) {
         transform_fourier_space(perturbations[i], preprocessed_tracking_window);
-        /* preprocess(perturbations[i], preprocessed_tracking_window); */
 
         cv::Mat N, D;
-        cv::mulSpectrums(fourier_synth_target, preprocessed_tracking_window, N, 0,
-                true);
-        cv::mulSpectrums(preprocessed_tracking_window,
-                preprocessed_tracking_window, D, 0, true);
+        cv::mulSpectrums(fourier_synth_target, preprocessed_tracking_window, N, 0, true);
+        cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
         D += epsilon; // So we don't divide by 0 accidently.
 
         this->N = this->learning_rate * N + (1 - this->learning_rate) * this->N;
-        this->D = this->learning_rate * (D + epsilon) +
-            (1 - this->learning_rate) * this->D;
+        this->D = this->learning_rate * (D + epsilon) + (1 - this->learning_rate) * this->D;
     }
 }
 
 void Tracker::update(const cv::Mat& frame) {
     cv::Mat tracking_window = frame(cv::Rect(prev_x - tracking_window_size.width / 2, prev_y - tracking_window_size.height / 2, tracking_window_size.width, tracking_window_size.height));
     cv::Mat preprocessed_tracking_window;
-    preprocess(tracking_window, preprocessed_tracking_window);
+    /* preprocess(tracking_window, preprocessed_tracking_window); */
     transform_fourier_space(tracking_window, preprocessed_tracking_window);
     cv::Mat filter;
     // NOTE: gives conjugate of filter
     divide_spectrums(N, D, filter);
 
-    // Getting conjugate of filter and storing it for DRAWING
-    /* cv::Mat temp; */
-    /* cv::Mat ones  = cv::Mat::ones(filter.rows, filter.cols, CV_32FC2); */
-    /* cv::mulSpectrums(ones, filter, temp, true); */
+    //NOTE: gonna say this is fine for now
     cv::Mat filter_real;
     cv::dft(filter, filter_real, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
     shift_quadrants(filter_real);
     cv::normalize(filter_real, filter_real, 0, 255.0, cv::NORM_MINMAX);
+    cv::flip(filter_real, filter_real, 0);
     H = filter_real;
 
     // Getting new peak
-    cv::Mat peak;
+    cv::Mat peak, peak_real;
     cv::mulSpectrums(filter, preprocessed_tracking_window, peak, 0);
+
+    // Getting the gaussian peak out of fourier space
+    cv::idft(peak, peak_real, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
+
+    // Finding strongest correlation point and storing x and y values
+    cv::Point gaussian_peak;
+    double max_val;
+    cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak);
+    printf("Found peak: %f\n", max_val);
+
+    //Seek with error
+    //TODO: tune threshold (consider finding median of previous max_val and basing threshold off of that
+    /* if (max_val < 0.3) { */
+    /*     this->seek(frame, filter, &gaussian_peak, peak); */
+    /* } */
 
     // Adapting the filter based on given learning rate
     cv::Mat N, D;
@@ -83,30 +102,55 @@ void Tracker::update(const cv::Mat& frame) {
     cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
 
     this->N = this->learning_rate * N + (1 - this->learning_rate) * this->N;
-    this->D = this->learning_rate * (D + epsilon) + (1 - this->learning_rate) * this->D;
+    //TODO: scalar regularization parameter? Fix
+    this->D = this->learning_rate * (D + cv::Scalar(epsilon, 0)) + (1 - this->learning_rate) * this->D;
 
-    // Getting the gaussian peak out of fourier space
-    cv::dft(peak, peak, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
-
-    // Finding strongest correlation point and storing x and y values
-    cv::Point gaussian_peak;
-    cv::minMaxLoc(peak, NULL, NULL, NULL, &gaussian_peak);
     this->prev_x += gaussian_peak.x - tracking_window_size.width / 2;
     this->prev_y += gaussian_peak.y - tracking_window_size.height / 2;
 
     //Only for drawing the peak
-    response = peak.clone();
+    response = peak_real.clone();
+}
+
+void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, cv::Mat &peak_dft, int w) {
+    //TODO: numeric limit?
+    double best_peak = -10000;
+
+    //TODO: integer or fractional offsets?
+    for (int i = w; i >= -w; i--) {
+        for (int j = w; j >= -w; j--) {
+            int lx = prev_x - (2 * w + 1) * (tracking_window_size.width / 2);
+            int ly = prev_y - (2 * w + 1) * (tracking_window_size.height / 2);
+            cv::Mat tracking_window = frame(cv::Rect(lx, ly,
+                        tracking_window_size.width,
+                        tracking_window_size.height
+                        ));
+            cv::Mat preprocessed_tracking_window;
+            transform_fourier_space(tracking_window, preprocessed_tracking_window);
+
+            cv::Mat peak, peak_real;
+            cv::mulSpectrums(filter, preprocessed_tracking_window, peak, 0);
+
+            cv::idft(peak, peak_real, cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
+
+            // Finding strongest correlation point and storing x and y values
+            cv::Point gaussian_peak;
+            double max_val;
+            cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak);
+            if (max_val > best_peak) {
+                best_peak = max_val;
+                peak_dft = peak;
+                loc->x = lx + iagaussian_peak.x;
+                loc->y = gaussian_peak.y;
+            }
+        }
+    }
 }
 
 void Tracker::draw(cv::Mat& frame) {
     cv::Mat H_preview, response_preview;
     H.convertTo(H_preview, CV_8UC1);
-    //cv::resize(H_preview, H_preview, cv::Size(), 2);
     response.convertTo(response_preview, CV_8UC1, 255.0f);
-    //cv::resize(response_preview, response_preview, cv::Size(), 2);
-
-    //cv::resize(H, H_preview, cv::Size(), 2);
-    //cv::resize(response, response_preview, cv::Size(), 2);
 
     int padding = 32;
     H_preview.copyTo(frame(cv::Rect(padding, frame.rows - padding - H_preview.rows, H_preview.cols, H_preview.rows)));
@@ -136,12 +180,12 @@ void Tracker::transform_fourier_space(const cv::Mat &frame, cv::Mat &dst, bool p
 
 void Tracker::preprocess(const cv::Mat &frame, cv::Mat &dst) {
     cv::cvtColor(frame, dst, cv::COLOR_BGR2GRAY);
-    // TODO: experiment with this (scale by 255 or no?)
     dst.convertTo(dst, CV_32FC1);
     cv::normalize(dst, dst, 0, 1, cv::NORM_MINMAX);
     dst += cv::Scalar::all(1);
     cv::log(dst, dst);
 
+    //TODO: normalize further to mean?
     cv::Scalar mean, stddev;
     cv::meanStdDev(dst, mean, stddev);
     dst -= mean.val[0];

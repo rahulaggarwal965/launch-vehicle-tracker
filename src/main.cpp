@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     cv::Mat frame;
 
     //TODO: EPSILON has a HUGE difference on max_val
-    Tracker tracker(cv::Size(64, 64), 0.125, 0);
+    Tracker tracker(cv::Size(64, 64), 0.125);
 
     cap >> frame;
     if(frame.empty()) {

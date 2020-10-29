@@ -198,9 +198,9 @@ void Tracker::preprocess(const cv::Mat &frame, cv::Mat &dst) {
     dst /= cv::sum(dst.mul(dst))[0];
 }
 
-cv::Mat createRegularization(const cv::Mat& m) {
+/* cv::Mat createRegularization(const cv::Mat& m) { */
 
-}
+/* } */
 
 void Tracker::generate_perturbations(const cv::Mat& tracking_window, const cv::Mat& gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]) {
     cv::Point center(tracking_window.cols / 2, tracking_window.rows / 2);

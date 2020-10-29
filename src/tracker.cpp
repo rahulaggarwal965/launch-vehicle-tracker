@@ -28,8 +28,8 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
             tracking_window_size.height,
             tracking_window_size.width,
             tracking_window_size.width / 2,
-            tracking_window_size.height / 2, 2, 2);
-    transform_fourier_space(synth_target, fourier_synth_target, false);
+            tracking_window_size.height / 2);
+    transform_fourier_space(synth_target, fourier_synth_target);
 
     // Get perturbations
     cv::Mat perturbations[8];
@@ -38,7 +38,7 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
 
     //Initialize N and D with normal image.
     cv::Mat preprocessed_tracking_window;
-    transform_fourier_space(tracking_window, preprocessed_tracking_window);
+    transform_fourier_space(tracking_window, preprocessed_tracking_window, true);
 
     cv::mulSpectrums(fourier_synth_target, preprocessed_tracking_window, N, 0,
             true);
@@ -48,7 +48,7 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
 
     //Update with perturbed image.
     for (int i = 0; i < 8; i++) {
-        transform_fourier_space(perturbations[i], preprocessed_tracking_window);
+        transform_fourier_space(perturbations[i], preprocessed_tracking_window, true);
 
         cv::Mat N, D;
         cv::mulSpectrums(fourier_synth_target, preprocessed_tracking_window, N, 0, true);
@@ -64,7 +64,7 @@ void Tracker::update(const cv::Mat& frame) {
     cv::Mat tracking_window = frame(cv::Rect(prev_x - tracking_window_size.width / 2, prev_y - tracking_window_size.height / 2, tracking_window_size.width, tracking_window_size.height));
     cv::Mat preprocessed_tracking_window;
     /* preprocess(tracking_window, preprocessed_tracking_window); */
-    transform_fourier_space(tracking_window, preprocessed_tracking_window);
+    transform_fourier_space(tracking_window, preprocessed_tracking_window, true);
     cv::Mat filter;
     // NOTE: gives conjugate of filter
     divide_spectrums(N, D, filter);
@@ -90,6 +90,11 @@ void Tracker::update(const cv::Mat& frame) {
     cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak);
     printf("Found peak: %f\n", max_val);
 
+    //TODO: do peak to sidelobe test before doing gaussian again
+    cv::Mat new_peak, new_peak_F;
+    generate_gaussian(new_peak, peak.rows, peak.cols, gaussian_peak.x, gaussian_peak.y);
+    transform_fourier_space(new_peak, new_peak);
+
     //Seek with error
     //TODO: tune threshold (consider finding median of previous max_val and basing threshold off of that
     /* if (max_val < 0.3) { */
@@ -98,7 +103,7 @@ void Tracker::update(const cv::Mat& frame) {
 
     // Adapting the filter based on given learning rate
     cv::Mat N, D;
-    cv::mulSpectrums(peak, preprocessed_tracking_window, N, 0, true);
+    cv::mulSpectrums(new_peak, preprocessed_tracking_window, N, 0, true);
     cv::mulSpectrums(preprocessed_tracking_window, preprocessed_tracking_window, D, 0, true);
 
     this->N = this->learning_rate * N + (1 - this->learning_rate) * this->N;
@@ -126,7 +131,7 @@ void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, 
                         tracking_window_size.height
                         ));
             cv::Mat preprocessed_tracking_window;
-            transform_fourier_space(tracking_window, preprocessed_tracking_window);
+            transform_fourier_space(tracking_window, preprocessed_tracking_window, true);
 
             cv::Mat peak, peak_real;
             cv::mulSpectrums(filter, preprocessed_tracking_window, peak, 0);
@@ -191,6 +196,10 @@ void Tracker::preprocess(const cv::Mat &frame, cv::Mat &dst) {
     dst -= mean.val[0];
 
     dst /= cv::sum(dst.mul(dst))[0];
+}
+
+cv::Mat createRegularization(const cv::Mat& m) {
+
 }
 
 void Tracker::generate_perturbations(const cv::Mat& tracking_window, const cv::Mat& gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]) {

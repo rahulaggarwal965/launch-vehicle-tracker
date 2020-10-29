@@ -20,7 +20,7 @@ public:
 
 private:
     cv::Mat H, response, hanning_window;
-    void transform_fourier_space(const cv::Mat& frame, cv::Mat& dft, bool preprocess = true);
+    void transform_fourier_space(const cv::Mat& frame, cv::Mat& dft, bool preprocess = false);
     void generate_perturbations(const cv::Mat& tracking_window, const cv::Mat& gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]);
     void preprocess(const cv::Mat &frame, cv::Mat &dst);
     void seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, cv::Mat &peak_dft, int w = 3);

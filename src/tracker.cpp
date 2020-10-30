@@ -1,17 +1,15 @@
-#include "fourier_tools.h"
 #include "opencv2/core.hpp"
-#include "opencv2/core/base.hpp"
+#include <ios>
 #include <tracker.h>
 
 //TODO: (BREAKING) might change to double precision to avoid inverse dft issues
 
-Tracker::Tracker(const cv::Size& tracking_window_size, double learning_rate, double epsilon) {
-    this->tracking_window_size = tracking_window_size;
-    this->learning_rate = learning_rate;
-    this->epsilon = epsilon;
-}
+Tracker::Tracker(const cv::Size &tracking_window_size, double learning_rate, double epsilon) :
+    tracking_window_size(tracking_window_size),
+    learning_rate(learning_rate),
+    epsilon(epsilon) {}
 
-void Tracker::initialize(const cv::Mat& frame, int x, int y) {
+void Tracker::initialize(const cv::Mat &frame, int x, int y) {
 
     //Choose initial window.
     prev_x = x; prev_y = y;
@@ -28,7 +26,8 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
             tracking_window_size.height,
             tracking_window_size.width,
             tracking_window_size.width / 2,
-            tracking_window_size.height / 2);
+            tracking_window_size.height / 2
+            );
     transform_fourier_space(synth_target, fourier_synth_target);
 
     // Get perturbations
@@ -60,7 +59,7 @@ void Tracker::initialize(const cv::Mat& frame, int x, int y) {
     }
 }
 
-void Tracker::update(const cv::Mat& frame) {
+void Tracker::update(const cv::Mat &frame) {
     cv::Mat tracking_window = frame(cv::Rect(prev_x - tracking_window_size.width / 2, prev_y - tracking_window_size.height / 2, tracking_window_size.width, tracking_window_size.height));
     cv::Mat preprocessed_tracking_window;
     /* preprocess(tracking_window, preprocessed_tracking_window); */
@@ -86,9 +85,16 @@ void Tracker::update(const cv::Mat& frame) {
 
     // Finding strongest correlation point and storing x and y values
     cv::Point gaussian_peak;
-    double max_val;
-    cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak);
-    printf("Found peak: %f\n", max_val);
+    /* double max_val; */
+    /* cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak); */
+    /* printf("Found peak: %f\n", max_val); */
+
+    double psr = compute_psr(peak_real, &gaussian_peak);
+    std::ofstream psr_dump;
+    psr_dump.open("psr_dump.txt", std::ios_base::app);
+    psr_dump << psr << '\n';
+    psr_dump.close();
+    printf("PSR: %f\n", psr);
 
     //TODO: do peak to sidelobe test before doing gaussian again
     cv::Mat new_peak, new_peak_F;
@@ -152,7 +158,35 @@ void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, 
     }
 }
 
-void Tracker::draw(cv::Mat& frame) {
+/*
+
+To compute the PSR the correlation output g is split into the
+peak which is the maximum value and the sidelobe which is the
+rest of the pixels excluding an 11 × 11 window around the peak.
+The PSR is then defined as gmax−µsl/σsl where gmax is the peak
+values and µsl and σsl are the mean and standard deviation of
+the sidelobe.
+
+*/
+double Tracker::compute_psr(const cv::Mat &correlation, cv::Point *loc) {
+    double max_val;
+    cv::minMaxLoc(correlation, NULL, &max_val, NULL, loc);
+    //threshold
+    int lx = fmax(0, loc->x - 5);
+    int ly = fmax(0, loc->y - 5);
+    int rx = fmin(correlation.cols, loc->x + 6);
+    int ry = fmin(correlation.rows,  loc->y + 6);
+
+    cv::Mat mask = cv::Mat::ones(correlation.rows, correlation.cols, CV_8UC1);
+    mask(cv::Range(ly, ry), cv::Range(lx, rx)) = 0;
+
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(correlation, mean, stddev, mask);
+
+    return (max_val - mean[0]) / stddev[0];
+}
+
+void Tracker::draw(cv::Mat &frame) {
     cv::Mat H_preview, response_preview;
     H.convertTo(H_preview, CV_8UC1);
     response.convertTo(response_preview, CV_8UC1, 255.0f);
@@ -198,11 +232,11 @@ void Tracker::preprocess(const cv::Mat &frame, cv::Mat &dst) {
     dst /= cv::sum(dst.mul(dst))[0];
 }
 
-/* cv::Mat createRegularization(const cv::Mat& m) { */
+/* cv::Mat createRegularization(const cv::Mat &m) { */
 
 /* } */
 
-void Tracker::generate_perturbations(const cv::Mat& tracking_window, const cv::Mat& gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]) {
+void Tracker::generate_perturbations(const cv::Mat &tracking_window, const cv::Mat &gaussian, cv::Mat perturbations[8], cv::Mat target_aff[8]) {
     cv::Point center(tracking_window.cols / 2, tracking_window.rows / 2);
     perturbations[0] = cv::getRotationMatrix2D(center,  -2.8, 1);
     perturbations[1] = cv::getRotationMatrix2D(center,  2.8, 1);

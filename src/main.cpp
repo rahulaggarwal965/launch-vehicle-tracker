@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
     cap >> frame;
     if(frame.empty()) {
         fprintf(stderr, "Could not get frame of video");
+        return -1;
     }
 
     tracker.initialize(frame, x, y);
@@ -27,7 +28,8 @@ int main(int argc, char **argv) {
     while (true) {
         cap >> frame;
         if(frame.empty()) {
-            fprintf(stderr, "Could not get frame of video");
+            fprintf(stderr, "Could not get frame of video\n");
+            return -1;
         }
 
         tracker.update(frame);
@@ -37,7 +39,7 @@ int main(int argc, char **argv) {
 
         cv::imshow("tracker", gray);
 
-        if (cv::waitKey(0) == 113) {
+        if (cv::waitKey(33) == 113) {
             break;
         }
     }

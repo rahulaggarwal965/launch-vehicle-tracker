@@ -7,7 +7,10 @@
 Tracker::Tracker(const cv::Size &tracking_window_size, double learning_rate, double epsilon) :
     tracking_window_size(tracking_window_size),
     learning_rate(learning_rate),
-    epsilon(epsilon) {}
+    epsilon(epsilon)
+{
+    cv::createHanningWindow(hanning_window, tracking_window_size, CV_32FC1);
+}
 
 void Tracker::initialize(const cv::Mat &frame, int x, int y) {
 
@@ -230,6 +233,9 @@ void Tracker::preprocess(const cv::Mat &frame, cv::Mat &dst) {
     dst -= mean.val[0];
 
     dst /= cv::sum(dst.mul(dst))[0];
+
+    // See hann functions, breaks the toroidal wrap around of correlation (which is good)
+    cv::multiply(dst, this->hanning_window, dst);
 }
 
 /* cv::Mat createRegularization(const cv::Mat &m) { */

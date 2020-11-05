@@ -1,4 +1,3 @@
-#include "opencv2/core.hpp"
 #include <ios>
 #include <tracker.h>
 
@@ -71,7 +70,7 @@ void Tracker::update(const cv::Mat &frame) {
     // NOTE: gives conjugate of filter
     divide_spectrums(N, D, filter);
 
-    //NOTE: gonna say this is fine for now
+    //TODO: refactor out to another thread (on computer), unimportant for actual tracking
     cv::Mat filter_real;
     cv::dft(filter, filter_real, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
     shift_quadrants(filter_real);
@@ -93,10 +92,10 @@ void Tracker::update(const cv::Mat &frame) {
     /* printf("Found peak: %f\n", max_val); */
 
     double psr = compute_psr(peak_real, &gaussian_peak);
-    std::ofstream psr_dump;
-    psr_dump.open("psr_dump.txt", std::ios_base::app);
-    psr_dump << psr << '\n';
-    psr_dump.close();
+    /* std::ofstream psr_dump; */
+    /* psr_dump.open("psr_dump.txt", std::ios_base::app); */
+    /* psr_dump << psr << '\n'; */
+    /* psr_dump.close(); */
     printf("PSR: %f\n", psr);
 
     //TODO: do peak to sidelobe test before doing gaussian again
@@ -128,7 +127,7 @@ void Tracker::update(const cv::Mat &frame) {
 
 void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, cv::Mat &peak_dft, int w) {
     //TODO: numeric limit?
-    double best_peak = -10000;
+    double best_psr = 0;
 
     //TODO: integer or fractional offsets?
     for (int i = w; i >= -w; i--) {
@@ -149,13 +148,12 @@ void Tracker::seek(const cv::Mat &frame, const cv::Mat &filter, cv::Point *loc, 
 
             // Finding strongest correlation point and storing x and y values
             cv::Point gaussian_peak;
-            double max_val;
-            cv::minMaxLoc(peak_real, NULL, &max_val, NULL, &gaussian_peak);
-            if (max_val > best_peak) {
-                best_peak = max_val;
+            double curr_psr = compute_psr(peak_real, &gaussian_peak);
+            if (curr_psr > best_psr) {
+                best_psr = curr_psr;
                 peak_dft = peak;
                 loc->x = lx + gaussian_peak.x;
-                loc->y = gaussian_peak.y;
+                loc->y = ly + gaussian_peak.y;
             }
         }
     }

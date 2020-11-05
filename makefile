@@ -5,7 +5,7 @@ CFLAGS := `pkg-config --cflags opencv4` -Wall
 
 # Linker
 LDFLAGS := `pkg-config --libs opencv4`
-LDLIBS := -lm
+LDLIBS := -pthread -lm
 
 # Project Directories
 SRC_DIR := src

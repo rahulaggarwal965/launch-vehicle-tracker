@@ -40,16 +40,32 @@ void generate_magnitude_spectrum(const cv::Mat& dft, cv::Mat& dst) {
 
 void generate_gaussian(cv::Mat& dst, int rows, int cols, int uX, int uY, float sigmaX, float sigmaY, float amplitude) {
     cv::Mat temp(rows, cols, CV_32FC1); //guaranteed continuous; use i, and j for ease of reading code
+    float sX = 2.0f * sigmaX * sigmaX;
+    float sY = 2.0f * sigmaY * sigmaY;
     for (int j = 0; j < rows; j++) {
         float * elementPtr = temp.ptr<float>(j);
         for (int i = 0; i < cols; i++) {
-            float x = (float) (i - uX) * (i - uX) / (2.0f * sigmaX * sigmaX);
-            float y = (float) (j - uY) * (j - uY) / (2.0f * sigmaY * sigmaY);
+            float x = (float) (i - uX) * (i - uX) / (sX);
+            float y = (float) (j - uY) * (j - uY) / (sY);
             elementPtr[i] = amplitude*exp(-x - y);//A
         }
     }
     normalize(temp, temp, 0.0f, 1.0f, cv::NORM_MINMAX);
     dst = temp; //copies header only;
+}
+
+//TODO: factor out amplitude
+void generate_gaussian_parallel(cv::Mat &dst, int rows, int cols, int uX, int uY, float sigmaX, float sigmaY, float amplitude) {
+    float sX = 2.0f * sigmaX * sigmaX;
+    float sY = 2.0f * sigmaY * sigmaY;
+    cv::Mat temp(rows, cols, CV_32FC1);
+    temp.forEach<float>([uX, uY, sX, sY, amplitude] (float &val, const int * position) -> void {
+        float x = (float) (position[1] - uX) * (position[1] - uX) / sX;
+        float y = (float) (position[0] - uY) * (position[0] - uY) / sY;
+        val = amplitude*exp(-x - y);
+    });
+    normalize(temp, temp, 0.0f, 1.0f, cv::NORM_MINMAX);
+    dst = temp;
 }
 
 void divide_spectrums(const cv::Mat& comp, const cv::Mat& re, cv::Mat& dst) {

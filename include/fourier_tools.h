@@ -11,6 +11,8 @@ void generate_magnitude_spectrum(const cv::Mat& dft, cv::Mat& dst);
 
 void generate_gaussian(cv::Mat& dst, int rows, int cols, int uX, int uY, float sigmaX = 2, float sigmaY = 2, float amplitude = 1);
 
+void generate_gaussian_parallel(cv::Mat& dst, int rows, int cols, int uX, int uY, float sigmaX = 2, float sigmaY = 2, float amplitude = 1);
+
 void divide_spectrums(const cv::Mat& comp, const cv::Mat& re, cv::Mat& dst);
 
 //temp

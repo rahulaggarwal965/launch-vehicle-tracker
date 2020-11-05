@@ -6,3 +6,4 @@ release/
 .clangd/
 test_videos/
 test_processed/
+callgrind*

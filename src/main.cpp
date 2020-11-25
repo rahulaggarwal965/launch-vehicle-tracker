@@ -17,6 +17,9 @@ int main(int argc, char **argv) {
 
     //TODO: EPSILON has a HUGE difference on max_val
     Tracker tracker(cv::Size(64, 64), 0.125);
+    const bool draw_window = (std::getenv("DRAW_WINDOW") == NULL) ? 0 : 1;
+
+    const float pwm_mod = 0;
 
     cap >> frame;
     if(frame.empty()) {
@@ -38,17 +41,22 @@ int main(int argc, char **argv) {
         }
 
         tracker.update(frame);
-        cv::Mat gray;
-        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-        tracker.draw(gray);
+        printf("Difference: {%d, %d}\n", tracker.diff_x, tracker.diff_y);
+        // TODO: actuate servo motors based on these difference values, I have
+        // to find correct values for speed using pwm.
 
-        //cv::imshow("tracker", gray);
+        if (draw_window) {
+            cv::Mat gray;
+            cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+            tracker.draw(gray);
 
-        frames++;
+            cv::imshow("tracker", gray);
 
-        //if (cv::waitKey(-1) == 113) {
-        //    break;
-        //}
+            if (cv::waitKey(33) == 113) {
+                break;
+            }
+        }
+    frames++;
     }
     time(&end);
     printf("FPS: ~%f\n", frames / difftime(end, start));

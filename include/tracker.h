@@ -11,7 +11,7 @@ class Tracker {
     public:
         cv::Mat N, D;
         cv::Size tracking_window_size;
-        int prev_x, prev_y;
+        int prev_x, prev_y, diff_x, diff_y;
         double learning_rate, epsilon;
 
         Tracker(const cv::Size &tracking_window_size, double learning_rate = 0.125, double epsilon = 0.001);

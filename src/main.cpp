@@ -1,6 +1,7 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include "tracker.h"
+#include <time.h>
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -22,13 +23,17 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could not get frame of video");
         return -1;
     }
-
+    int frames = 0;
+    time_t start, end;
+    time(&start);
     tracker.initialize(frame, x, y);
 
-    while (true) {
+    while (cap.isOpened()) {
         cap >> frame;
         if(frame.empty()) {
             fprintf(stderr, "Could not get frame of video\n");
+            time(&end);
+            printf("FPS: ~%f\n", frames / difftime(end, start));
             return -1;
         }
 
@@ -37,11 +42,15 @@ int main(int argc, char **argv) {
         cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
         tracker.draw(gray);
 
-        cv::imshow("tracker", gray);
+        //cv::imshow("tracker", gray);
 
-        if (cv::waitKey(33) == 113) {
-            break;
-        }
+        frames++;
+
+        //if (cv::waitKey(-1) == 113) {
+        //    break;
+        //}
     }
+    time(&end);
+    printf("FPS: ~%f\n", frames / difftime(end, start));
     return 0;
 }

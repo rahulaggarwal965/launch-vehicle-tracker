@@ -93,10 +93,10 @@ void Tracker::update(const cv::Mat &frame) {
     /* printf("Found peak: %f\n", max_val); */
 
     double psr = compute_psr(peak_real, &gaussian_peak);
-    std::ofstream psr_dump;
-    psr_dump.open("psr_dump.txt", std::ios_base::app);
-    psr_dump << psr << '\n';
-    psr_dump.close();
+    //std::ofstream psr_dump;
+    //psr_dump.open("psr_dump.txt", std::ios_base::app);
+    //psr_dump << psr << '\n';
+    //psr_dump.close();
     printf("PSR: %f\n", psr);
 
     //TODO: do peak to sidelobe test before doing gaussian again

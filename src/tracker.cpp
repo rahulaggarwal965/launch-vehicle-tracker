@@ -97,7 +97,7 @@ void Tracker::update(const cv::Mat &frame) {
     psr_dump.open("psr_dump.txt", std::ios_base::app);
     psr_dump << psr << '\n';
     psr_dump.close();
-    printf("PSR: %f\n", psr);
+    /* printf("PSR: %f\n", psr); */
 
     //TODO: do peak to sidelobe test before doing gaussian again
     cv::Mat new_peak, new_peak_F;
@@ -121,6 +121,8 @@ void Tracker::update(const cv::Mat &frame) {
 
     this->prev_x += gaussian_peak.x - tracking_window_size.width / 2;
     this->prev_y += gaussian_peak.y - tracking_window_size.height / 2;
+    this->diff_x = frame.cols / 2 - this->prev_x;
+    this->diff_y = frame.rows / 2 - this->prev_y;
 
     //Only for drawing the peak
     response = peak_real.clone();
@@ -199,6 +201,7 @@ void Tracker::draw(cv::Mat &frame) {
     response_preview.copyTo(frame(cv::Rect(2 * padding + H_preview.cols, frame.rows - padding - response_preview.rows, response_preview.cols, response_preview.rows)));
     cv::rectangle(frame, cv::Rect(this->prev_x - this->tracking_window_size.width / 2, this->prev_y - this->tracking_window_size.height / 2, this->tracking_window_size.width, this->tracking_window_size.height), cv::Scalar(0, 0, 0));
     cv::circle(frame, cv::Point(prev_x, prev_y), 3, cv::Scalar(0, 0, 255));
+    cv::line(frame, cv::Point(prev_x, prev_y), cv::Point(prev_x + diff_x, prev_y + diff_y), cv::Scalar(255, 255, 255));
 }
 
 void Tracker::transform_fourier_space(const cv::Mat &frame, cv::Mat &dst, bool preprocess) {

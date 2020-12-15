@@ -3,6 +3,7 @@
 compile_commands.json
 debug/
 release/
-.clangd/
+.cache/
 test_videos/
 test_processed/
+callgrind*

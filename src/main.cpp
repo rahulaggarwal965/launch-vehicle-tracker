@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     cap >> frame;
     if(frame.empty()) {
-        fprintf(stderr, "Could not get frame of video");
+        fprintf(stderr, "Could not get frame of video\n");
         return -1;
     }
     int frames = 0;

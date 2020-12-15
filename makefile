@@ -5,7 +5,7 @@ CFLAGS := `pkg-config --cflags opencv4` -Wall
 
 # Linker
 LDFLAGS := `pkg-config --libs opencv4`
-LDLIBS := -lm
+LDLIBS := -lm -lwiringPi -pthread
 
 # Project Directories
 SRC_DIR := src

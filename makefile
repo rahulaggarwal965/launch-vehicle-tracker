@@ -44,7 +44,7 @@ $(DBG_DIR)/%.o: $(SRC_DIR)/%.cpp
 release: $(REL_TARGET)
 
 $(REL_TARGET): $(REL_OBJS)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $^ -o $@ $(LDFLAGS) $(LDLIBS) 
 
 $(REL_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(REL_CFLAGS) -c $< -o $@

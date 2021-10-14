@@ -1,8 +1,8 @@
 .DS_STORE
-.vimspector.json
 compile_commands.json
 debug/
 release/
-.clangd/
+.cache/
+callgrind*
 test_videos/
 test_processed/

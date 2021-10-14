@@ -11,6 +11,7 @@ class Tracker {
     public:
         cv::Mat N, D;
         cv::Size tracking_window_size;
+        // TODO(rahul): should this be a float or an int
         float prev_x, prev_y, diff_x, diff_y;
         double learning_rate, epsilon;
 

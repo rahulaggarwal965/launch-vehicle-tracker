@@ -5,7 +5,7 @@ CFLAGS := `pkg-config --cflags opencv4` -Wall
 
 # Linker
 LDFLAGS := `pkg-config --libs opencv4`
-LDLIBS := -lm
+LDLIBS := -lm -lpigpio -lrt
 
 # Project Directories
 SRC_DIR := src
@@ -35,7 +35,7 @@ all: prepare release
 debug: $(DBG_TARGET)
 
 $(DBG_TARGET): $(DBG_OBJS)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(DBG_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(DBG_CFLAGS) -c $< -o $@
@@ -44,7 +44,7 @@ $(DBG_DIR)/%.o: $(SRC_DIR)/%.cpp
 release: $(REL_TARGET)
 
 $(REL_TARGET): $(REL_OBJS)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(REL_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(REL_CFLAGS) -c $< -o $@

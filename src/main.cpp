@@ -1,13 +1,30 @@
+// opencv libraries
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
-#include "tracker.h"
+
+// linux system libraries
 #include <time.h>
+#include <sched.h>
+#include <sys/mman.h>
+
+// usr includes
+#include "tracker.h"
+#include "gpio.h"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr, "Expected video file name as a command line argument\n");
         return -1;
     }
+
+    // prevent process swapping from the linux kernel while on the raspberry pi
+    struct sched_param sp;
+    memset(&sp, 0, sizeof(sp));
+    sp.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    mlockall(MCL_CURRENT | MCL_FUTURE);
+
+    setup_pins();
+
     const char * vName = argv[1];
     int x = (argc > 2) ? atoi(argv[2]) : 640;
     int y = (argc > 3) ? atoi(argv[3]) : 220;
@@ -18,8 +35,6 @@ int main(int argc, char **argv) {
     //TODO: EPSILON has a HUGE difference on max_val
     Tracker tracker(cv::Size(64, 64), 0.125);
     const bool draw_window = (std::getenv("DRAW_WINDOW") == NULL) ? 0 : 1;
-
-    const float pwm_mod = 0;
 
     cap >> frame;
     if(frame.empty()) {
@@ -60,5 +75,8 @@ int main(int argc, char **argv) {
     }
     time(&end);
     printf("FPS: ~%f\n", frames / difftime(end, start));
+
+    cleanup_pins();
+
     return 0;
 }
